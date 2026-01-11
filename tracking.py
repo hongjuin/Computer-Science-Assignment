@@ -1,5 +1,8 @@
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+import os
+import stat
+from pathlib import Path
 import time
 
 class MyHandler(FileSystemEventHandler):
@@ -22,3 +25,20 @@ try:
 except KeyboardInterrupt:
     observer.stop()
 observer.join()
+
+def get_file_metadata(filepath):
+    p = Path(filepath)
+    stat_info = p.stat()
+    
+    return {
+        "filename": p.name,
+        "type": "dir" if p.is_dir() else "file",
+        "size": stat_info.st_size,
+        "owner": stat_info.st_uid,
+        "group": stat_info.st_gid,
+        "permissions": stat.filemode(stat_info.st_mode),
+        "created": time.ctime(stat_info.st_ctime),
+        "modified": time.ctime(stat_info.st_mtime),
+        "accessed": time.ctime(stat_info.st_atime)
+    }
+
