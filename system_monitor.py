@@ -17,6 +17,9 @@ class SystemPerformanceTracker:
     def __init__(self, log_file="system_performance_log.csv"):
         self.log_file = log_file
         self.setup_log_file()
+        # Initialize CPU measurement
+        psutil.cpu_percent (interval= None)
+        psutil.cpu_times_percent (interval= None)
         
     def setup_log_file(self):
         """Create CSV file with headers"""
@@ -84,7 +87,7 @@ class SystemPerformanceTracker:
     
     def get_detailed_cpu_info(self):
         """Get detailed CPU breakdown"""
-        cpu_times = psutil.cpu_times_percent(interval=1)
+        cpu_times = psutil.cpu_times_percent(interval=None)
         return {
             'user': cpu_times.user,
             'system': cpu_times.system,
@@ -129,7 +132,7 @@ class SystemPerformanceTracker:
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
         # 1. CPU Metrics
-        cpu_percent = psutil.cpu_percent(interval=1)
+        cpu_percent = psutil.cpu_percent(interval=None)
         cpu_details = self.get_detailed_cpu_info()
         load_avg = psutil.getloadavg()
         
@@ -218,11 +221,15 @@ class SystemPerformanceTracker:
         print(f"Logging to: {self.log_file}")
         print(f"Interval: {interval_seconds} seconds")
         print("Press Ctrl+C to stop\n")
-        
+
+        next_run= time.time ()
         try:
             while True:
                 self.log_metrics()
-                time.sleep(interval_seconds)
+                next_run+=interval_seconds
+                sleep_time= next_run- time.time ()
+                if sleep_time>0:
+                   time.sleep(sleep_time)
         except KeyboardInterrupt:
             print("\nSystem monitoring stopped.")
 
