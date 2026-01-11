@@ -6,6 +6,11 @@ Logs: Owner, Timestamp, User, Permissions, Size
 """
 
 import os
+import sys
+
+if os.name != "posix":
+    print("pwd module not supported on this OS")
+    sys.exit(1)
 import time
 import stat
 import pwd
