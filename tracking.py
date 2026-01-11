@@ -8,12 +8,17 @@ import time
 class MyHandler(FileSystemEventHandler):
     def on_created(self, event):
         print(f"File created: {event.src_path}")
+        created_datetime= time.strftime ('%Y-%m-%d %H:%M:%S', time.localtime ())
+        print (f'Created time: {created_datetime}')
 
     def on_deleted(self, event):
         print(f"File deleted: {event.src_path}")
-
+        deleted_datetime= time.strftime ('%Y-%m-%d %H:%M:%S', time.localtime ())
+        print (f'Delete datetime: {deleted_datetime}')
     def on_modified(self, event):
         print(f"File modified: {event.src_path}")
+        modify_datetime= time.strftime ('%Y-%m-%d %H-%M-%S', time.localtime ())
+        print (f'Modify datetime: {modify_datetime}')
 
 observer = Observer()
 observer.schedule(MyHandler(), path='.', recursive=False)
