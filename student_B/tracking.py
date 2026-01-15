@@ -1,0 +1,49 @@
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+import os
+import stat
+from pathlib import Path
+import time
+
+class MyHandler(FileSystemEventHandler):
+    def on_created(self, event):
+        print(f"File created: {event.src_path}")
+        created_datetime= time.strftime ('%Y-%m-%d %H:%M:%S', time.localtime ())
+        print (f'Created time: {created_datetime}')
+
+    def on_deleted(self, event):
+        print(f"File deleted: {event.src_path}")
+        deleted_datetime= time.strftime ('%Y-%m-%d %H:%M:%S', time.localtime ())
+        print (f'Delete datetime: {deleted_datetime}')
+    def on_modified(self, event):
+        print(f"File modified: {event.src_path}")
+        modify_datetime= time.strftime ('%Y-%m-%d %H-%M-%S', time.localtime ())
+        print (f'Modify datetime: {modify_datetime}')
+
+observer = Observer()
+observer.schedule(MyHandler(), path='.', recursive=False)
+observer.start()
+
+try:
+    while True:
+        time.sleep(10)
+except KeyboardInterrupt:
+    observer.stop()
+observer.join()
+
+def get_file_metadata(filepath):
+    p = Path(filepath)
+    stat_info = p.stat()
+    
+    return {
+        "filename": p.name,
+        "type": "dir" if p.is_dir() else "file",
+        "size": stat_info.st_size,
+        "owner": stat_info.st_uid,
+        "group": stat_info.st_gid,
+        "permissions": stat.filemode(stat_info.st_mode),
+        "created": time.ctime(stat_info.st_ctime),
+        "modified": time.ctime(stat_info.st_mtime),
+        "accessed": time.ctime(stat_info.st_atime)
+    }
+
