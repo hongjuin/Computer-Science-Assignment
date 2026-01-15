@@ -1,0 +1,6 @@
+Student A – Directory Monitoring Module
+
+Plan:
+- Monitor directory changes
+- Detect file creation, deletion, modification
+- Extract file metadata using Linux and Python
