@@ -1,6 +1,9 @@
 import time
 import stat
 from pathlib import Path
+from datetime import datetime
+
+LOG_FILE = "directory_log.txt"
 
 def get_metadata(path):
     info = path.stat()
@@ -16,9 +19,15 @@ def snapshot(directory):
         data[f.name] = get_metadata(f)
     return data
 
-before = snapshot("monitor_dir")
-time.sleep(5)
-after = snapshot("monitor_dir")
+def monitor_directory():
+    before = snapshot("monitor_dir")
+    time.sleep(5)
+    after = snapshot("monitor_dir")
 
-print("Before:", before)
-print("After:", after)
+    with open(LOG_FILE, "a") as log:
+        log.write(f"Check at {datetime.now()}\n")
+        log.write(f"Before: {before}\n")
+        log.write(f"After: {after}\n\n")
+
+if __name__ == "__main__":
+    monitor_directory()
