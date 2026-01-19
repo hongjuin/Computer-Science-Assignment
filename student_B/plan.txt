@@ -1,0 +1,6 @@
+Student B: System Performance and Resource Monitoring Requirements
+
+1. CPU tracking
+--> Time delaying for the next CPU performance
+--> Memory Usage
+--> Disk
