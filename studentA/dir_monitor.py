@@ -5,9 +5,20 @@ from datetime import datetime
 
 LOG_FILE = "directory_log.txt"
 
+def get_file_type(path):
+    if path.is_file():
+        return "regular file"
+    elif path.is_dir():
+        return "directory"
+    elif path.is_symlink():
+        return "symbolic link"
+    else:
+        return "other"
+
 def get_metadata(path):
     info = path.stat()
     return {
+	"type": get_file_type(path),
         "size": info.st_size,
         "permissions": oct(info.st_mode & 0o777),
         "mtime": info.st_mtime
