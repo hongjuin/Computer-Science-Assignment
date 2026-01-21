@@ -1,9 +1,9 @@
 import time
-import stat
 from pathlib import Path
 from datetime import datetime
 
 LOG_FILE = "directory_log.txt"
+MONITOR_DIR = "monitor_dir"
 
 def get_file_type(path):
     if path.is_file():
@@ -18,7 +18,7 @@ def get_file_type(path):
 def get_metadata(path):
     info = path.stat()
     return {
-	"type": get_file_type(path),
+        "type": get_file_type(path),
         "size": info.st_size,
         "permissions": oct(info.st_mode & 0o777),
         "mtime": info.st_mtime
@@ -31,14 +31,27 @@ def snapshot(directory):
     return data
 
 def monitor_directory():
-    before = snapshot("monitor_dir")
+    before = snapshot(MONITOR_DIR)
+
+    test_file = Path(MONITOR_DIR) / "test_auto.txt"
+    if not test_file.exists():
+        test_file.touch()
+
     time.sleep(5)
-    after = snapshot("monitor_dir")
+    after = snapshot(MONITOR_DIR)
+
+    created_files = set(after.keys()) - set(before.keys())
 
     with open(LOG_FILE, "a") as log:
         log.write(f"Check at {datetime.now()}\n")
-        log.write(f"Before: {before}\n")
-        log.write(f"After: {after}\n\n")
+        if created_files:
+            log.write("New files detected:\n")
+            for f in created_files:
+                log.write(f"  {f} -> {after[f]}\n")
+        else:
+            log.write("No new files detected.\n")
+        log.write("\n")
 
 if __name__ == "__main__":
     monitor_directory()
+
