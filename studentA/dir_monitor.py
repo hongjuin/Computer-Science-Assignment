@@ -39,7 +39,14 @@ def monitor_directory():
     created_files = set(after.keys()) - set(before.keys())
     deleted_files = set(before.keys()) - set(after.keys())
 
+    modified_files = []
+    for f in before.keys() & after.keys():
+        if before[f]["size"] != after[f]["size"] or \
+           before[f]["permissions"] != after[f]["permissions"]:
+            modified_files.append(f)
+
     with open(LOG_FILE, "a") as log:
+        log.write("=================================\n")
         log.write(f"Check at {datetime.now()}\n")
 
         if created_files:
@@ -52,7 +59,12 @@ def monitor_directory():
             for f in deleted_files:
                 log.write(f"  {f}\n")
 
-        if not created_files and not deleted_files:
+        if modified_files:
+            log.write("Modified files detected:\n")
+            for f in modified_files:
+                log.write(f"  {f}\n")
+
+        if not created_files and not deleted_files and not modified_files:
             log.write("No changes detected.\n")
 
         log.write("\n")
