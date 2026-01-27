@@ -1,74 +1,66 @@
 import time
-import stat
 from pathlib import Path
 from datetime import datetime
 
 LOG_FILE = "directory_log.txt"
 MONITOR_DIR = "monitor_dir"
-
-def get_file_type(path):
-    if path.is_file():
-        return "regular file"
-    elif path.is_dir():
-        return "directory"
-    elif path.is_symlink():
-        return "symbolic link"
-    else:
-        return "other"
-
-def get_metadata(path):
-    info = path.stat()
-    return {
-        "type": get_file_type(path),
-        "size": info.st_size,
-        "permissions": oct(info.st_mode & 0o777),
-        "mtime": info.st_mtime
-    }
+POLL_INTERVAL = 5   # 新增：监控间隔（秒）
 
 def snapshot(directory):
     data = {}
+    if not Path(directory).exists():
+        return data
+
     for f in Path(directory).iterdir():
-        data[f.name] = get_metadata(f)
+        try:
+            info = f.stat()
+            data[f.name] = (info.st_size, info.st_mtime, info.st_mode)
+        except:
+            pass
     return data
 
 def monitor_directory():
     before = snapshot(MONITOR_DIR)
-    time.sleep(5)
-    after = snapshot(MONITOR_DIR)
 
-    created_files = set(after.keys()) - set(before.keys())
-    deleted_files = set(before.keys()) - set(after.keys())
+    while True:
+        time.sleep(POLL_INTERVAL)
+        after = snapshot(MONITOR_DIR)
 
-    modified_files = []
-    for f in before.keys() & after.keys():
-        if before[f]["size"] != after[f]["size"] or \
-           before[f]["permissions"] != after[f]["permissions"]:
-            modified_files.append(f)
+        created = set(after.keys()) - set(before.keys())
+        deleted = set(before.keys()) - set(after.keys())
+        modified = []
 
-    with open(LOG_FILE, "a") as log:
-        log.write("=================================\n")
-        log.write(f"Check at {datetime.now()}\n")
+        for f in before.keys() & after.keys():
+            if before[f] != after[f]:
+                modified.append(f)
 
-        if created_files:
-            log.write("New files detected:\n")
-            for f in created_files:
-                log.write(f"  {f} -> {after[f]}\n")
+        with open(LOG_FILE, "a") as log:
+            log.write("=================================\n")
+            log.write(f"Check at {datetime.now()}\n")
 
-        if deleted_files:
-            log.write("Deleted files detected:\n")
-            for f in deleted_files:
-                log.write(f"  {f}\n")
+            if created:
+                log.write("Created files:\n")
+                for f in created:
+                    log.write(f"  {f}\n")
 
-        if modified_files:
-            log.write("Modified files detected:\n")
-            for f in modified_files:
-                log.write(f"  {f}\n")
+            if deleted:
+                log.write("Deleted files:\n")
+                for f in deleted:
+                    log.write(f"  {f}\n")
 
-        if not created_files and not deleted_files and not modified_files:
-            log.write("No changes detected.\n")
+            if modified:
+                log.write("Modified files:\n")
+                for f in modified:
+                    log.write(f"  {f}\n")
 
-        log.write("\n")
+            if not created and not deleted and not modified:
+                log.write("No changes detected.\n")
+
+            log.write("\n")
+
+        before = after
 
 if __name__ == "__main__":
+    Path(MONITOR_DIR).mkdir(exist_ok=True)
     monitor_directory()
 
