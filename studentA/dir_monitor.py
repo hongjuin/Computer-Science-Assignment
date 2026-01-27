@@ -1,11 +1,13 @@
 import time
 import stat
+import csv
 from pathlib import Path
 from datetime import datetime
 
 # ================= Configuration =================
 MONITOR_DIR = "monitor_dir"
 LOG_FILE = "directory_log.txt"
+CSV_FILE = "directory_log.csv"
 POLL_INTERVAL = 5
 # =================================================
 
@@ -21,11 +23,31 @@ def get_file_type(mode):
         return "other"
 
 
+def init_csv():
+    """
+    Initialize CSV file with header if not exists
+    """
+    if not Path(CSV_FILE).exists():
+        with open(CSV_FILE, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["timestamp", "event", "filename", "details"])
+
+
+def log_to_csv(event, filename, details):
+    """
+    Append one event record into CSV
+    """
+    with open(CSV_FILE, "a", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            event,
+            filename,
+            details
+        ])
+
+
 def snapshot(directory):
-    """
-    Take a snapshot of current directory state.
-    Store file size, modification time, and permission mode.
-    """
     data = {}
 
     if not Path(directory).exists():
@@ -70,15 +92,16 @@ def monitor_directory():
                 log.write("Created files:\n")
                 for f in created:
                     info = after[f]
-                    log.write(
-                        f"  {f} | Type: {info['type']} | Size: {info['size']} bytes\n"
-                    )
+                    detail = f"Type: {info['type']}, Size: {info['size']} bytes"
+                    log.write(f"  {f} | {detail}\n")
+                    log_to_csv("CREATED", f, detail)
 
             # DELETED
             if deleted:
                 log.write("Deleted files:\n")
                 for f in deleted:
                     log.write(f"  {f}\n")
+                    log_to_csv("DELETED", f, "File deleted")
 
             # MODIFIED
             if modified:
@@ -92,6 +115,7 @@ def monitor_directory():
                         detail = "Timestamp updated"
 
                     log.write(f"  {f}: {detail}\n")
+                    log_to_csv("MODIFIED", f, detail)
 
             if not created and not deleted and not modified:
                 log.write("No changes detected.\n")
@@ -103,7 +127,12 @@ def monitor_directory():
 
 if __name__ == "__main__":
     Path(MONITOR_DIR).mkdir(exist_ok=True)
+    init_csv()
+
     print(f"[INFO] Monitoring directory: {MONITOR_DIR}")
+    print(f"[INFO] TXT log file: {LOG_FILE}")
+    print(f"[INFO] CSV log file: {CSV_FILE}")
     print("[INFO] Press Ctrl+C to stop\n")
+
     monitor_directory()
 
