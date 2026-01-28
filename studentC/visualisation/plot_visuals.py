@@ -1,51 +1,43 @@
-import csv
+import pandas as pd
 import matplotlib.pyplot as plt
+import os
 
-time = []
-cpu = []
+os.makedirs("output", exist_ok=True)
 
-with open("../system_performance_log.csv", "r") as f:
-    reader = csv.DictReader(f)
-    for row in reader:
-        time.append(row["timestamp"])
-        cpu.append(float(row["cpu_percent"]))
+system_df = pd.read_csv("system_performance_log.csv")
+system_df["timestamp"] = pd.to_datetime(system_df["timestamp"])
 
-plt.plot(time, cpu)
-plt.title("CPU Usage Trend Over Time")
+plt.figure()
+plt.plot(system_df["timestamp"], system_df["cpu_percent"])
 plt.xlabel("Time")
 plt.ylabel("CPU Usage (%)")
+plt.title("CPU Usage Over Time")
+plt.xticks(rotation=45)
 plt.tight_layout()
-plt.savefig("../reports/cpu_usage.png")
+plt.savefig("output/cpu_usage.png")
 plt.close()
 
-memory = []
-
-with open("../system_performance_log.csv", "r") as f:
-    reader = csv.DictReader(f)
-    for row in reader:
-        memory.append(float(row["mem_percent"]))
-
-plt.bar(time, memory)
-plt.title("Memory Usage Over Time")
+plt.figure()
+plt.plot(system_df["timestamp"], system_df["mem_percent"])
 plt.xlabel("Time")
 plt.ylabel("Memory Usage (%)")
+plt.title("Memory Usage Over Time")
+plt.xticks(rotation=45)
 plt.tight_layout()
-plt.savefig("../reports/memory_usage.png")
+plt.savefig("output/memory_usage.png")
 plt.close()
 
-events = {"created": 0, "modified": 0, "deleted": 0}
+directory_df = pd.read_csv("directory_log.csv")
 
-with open("../directory_log.csv", "r") as f:
-    reader = csv.DictReader(f)
-    for row in reader:
-        event = row["event"]
-        if event in events:
-            events[event] += 1
+event_counts = directory_df["event"].value_counts()
 
-plt.bar(events.keys(), events.values())
-plt.title("Directory Change Events Summary")
+plt.figure()
+event_counts.plot(kind="bar")
 plt.xlabel("Event Type")
 plt.ylabel("Count")
+plt.title("Directory Change Events")
 plt.tight_layout()
-plt.savefig("../reports/directory_events.png")
+plt.savefig("output/directory_changes.png")
 plt.close()
+
+print("Visualisation completed. Charts saved in output/ folder.")
