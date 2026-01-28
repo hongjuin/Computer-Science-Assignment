@@ -1,5 +1,0 @@
-timestamp,event,filename,details
-2026-01-27 13:15:50,CREATED,test1.txt,"Type: regular file, Size: 6 bytes"
-2026-01-27 13:16:10,MODIFIED,test1.txt,Size 6 -> 16
-2026-01-27 13:16:30,MODIFIED,test1.txt,Permissions changed
-2026-01-27 13:16:35,DELETED,test1.txt,File deleted
