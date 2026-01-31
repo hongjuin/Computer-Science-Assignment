@@ -260,25 +260,21 @@ class SystemPerformanceTracker:
         
         # Display the performance
         print(f"[{row[0]}] CPU: {row[1]:.1f}% | Mem: {row[11]:.1f}% | Disk: {row[16]:.1f}%")
-        print(f"  Processes: {row[19]} total, {row[20]} running, {row[21]} sleeping")
-        print(f"  Load: {row[5]:.2f}, {row[6]:.2f}, {row[7]:.2f}")
-        print(f"  Top CPU: {row[22]}, {row[23]}, {row[24]}")
+        print(f" Processes: {row[19]} total, {row[20]} running, {row[21]} sleeping")
+        print(f" Load: {row[5]:.2f}, {row[6]:.2f}, {row[7]:.2f}")
+        print(f" Top CPU: {row[22]}, {row[23]}, {row[24]}")
+        print(f" Uptime: {row[17]} hours | Idle time: {row[18]} seconds")
+
     
     def run_monitor(self, interval_seconds=10):
-        """Run monitoring loop with precise timing"""
-        print("="*60)
-        print("SYSTEM PERFORMANCE MONITOR - STARTING")
-        print("="*60)
-        print(f"Logging to: {self.log_file}")
-        print(f"Interval: {interval_seconds} seconds")
-        print("="*60)
+        
         print("Monitoring the following: ")
         print("1. CPU Metrics: usage %, load average, process count")
         print("2. Memory Metrics: total/used/available, usage %")
         print("3. Disk Metrics: total/used/free, usage % (root)")
         print("4. System Uptime: total uptime, system idle time")
         print("5. Active Processes: total, running vs sleeping, top 3")
-        print("="*60)
+        print(f"Metrics collected every {interval_seconds} seconds\n")
         print("Press Ctrl+C to stop\n")
         
         cycle_count = 0
