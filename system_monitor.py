@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""
+'''
 SYSTEM PERFORMANCE MONITOR
-"""
+'''
 
 import psutil
 import time
@@ -40,7 +40,7 @@ class SystemPerformanceTracker:
                 writer.writerow(headers)
     
     def get_system_idle_time(self):
-        """Get system idle time from /proc/uptime - REQUIRED by assignment"""
+        '''Get system idle time from /proc/uptime '''
         try:
             with open('/proc/uptime', 'r') as f:
                 uptime_seconds, idle_seconds = map(float, f.read().split())
@@ -50,7 +50,7 @@ class SystemPerformanceTracker:
             return 0
     
     def get_memory_metrics(self):
-        """Get memory metrics exactly"""
+        '''Get memory metrics exactly'''
         memory = psutil.virtual_memory()
         return {
             'total_gb': round(memory.total / (1024**3), 2),
@@ -79,7 +79,7 @@ class SystemPerformanceTracker:
         return total, running, sleeping
     
     def get_top_processes(self):
-        """Get top 3 processes by CPU and Memory
+        '''Get top 3 processes by CPU and Memory'''
         processes = []
         
         # First pass: initialize CPU measurement
@@ -122,7 +122,7 @@ class SystemPerformanceTracker:
         return top_cpu, top_mem
     
     def collect_metrics(self):
-        """Collect ALL metrics EXACTLY as required by assignment"""
+        '''Collect ALL metrics'''
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
         # 1. CPU METRICS (Requirement i)
@@ -184,7 +184,7 @@ class SystemPerformanceTracker:
         return row
     
     def log_metrics(self):
-        """Save metrics to CSV file"""
+        '''Save metrics to CSV file'''
         row = self.collect_metrics()
         
         with open(self.log_file, 'a', newline='') as f:
@@ -202,7 +202,7 @@ class SystemPerformanceTracker:
     
     def run_monitor(self, interval_seconds=10):
         
-        print("Collecting EXACTLY as required:")
+        print("Collecting tracking results:")
         print("1. CPU: % usage, load avg (min), running processes")
         print("2. Memory: total/used/available GB, usage %")
         print("3. Disk: total/used/free GB, % usage (root /)")
