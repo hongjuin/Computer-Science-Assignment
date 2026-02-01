@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
-COMPLETE SYSTEM PERFORMANCE MONITOR
-Tracks: CPU, Memory, Disk, Processes, GPU (if available)
-Logs: Every 10 seconds with exact timestamps
+SYSTEM PERFORMANCE MONITOR
 """
 
 import psutil
@@ -12,26 +10,28 @@ import csv
 import os
 
 class SystemPerformanceTracker:
-    """Track all system resources including GPU"""
     
     def __init__(self, log_file="system_performance_log.csv"):
         self.log_file = log_file
         self.setup_log_file()
         # Initialize CPU measurement
-        psutil.cpu_percent (interval= None)
-        psutil.cpu_times_percent (interval= None)
+        psutil.cpu_percent(interval=0.1)
         
     def setup_log_file(self):
-        """Create CSV file with headers"""
         headers = [
-            'timestamp', 'cpu_percent', 'cpu_user', 'cpu_system', 'cpu_idle',
-            'load_1min', 'load_5min', 'load_15min',
-            'mem_total_gb', 'mem_used_gb', 'mem_free_gb', 'mem_percent',
+            'timestamp',
+            # CPU Metrics 
+            'cpu_percent', 'load_1min', 'load_5min', 'load_15min', 'running_processes',
+            # Memory Metrics
+            'mem_total_gb', 'mem_used_gb', 'mem_available_gb', 'mem_percent',
+            # Disk Metrics 
             'disk_total_gb', 'disk_used_gb', 'disk_free_gb', 'disk_percent',
-            'uptime_hours', 'process_count', 'running_processes', 'sleeping_processes',
+            # System Uptime
+            'uptime_hours', 'system_idle_seconds',
+            # Active Processes 
+            'total_processes', 'running_vs_sleeping',  # Combined as string "running/sleeping"
             'top_cpu_1', 'top_cpu_2', 'top_cpu_3',
-            'top_mem_1', 'top_mem_2', 'top_mem_3',
-            'gpu_available', 'gpu_usage', 'gpu_memory_used', 'gpu_memory_total'
+            'top_mem_1', 'top_mem_2', 'top_mem_3'
         ]
         
         if not os.path.exists(self.log_file):
@@ -39,118 +39,32 @@ class SystemPerformanceTracker:
                 writer = csv.writer(f)
                 writer.writerow(headers)
     
-    def get_gpu_info(self):
-        """Try to get GPU information (if available)"""
-        gpu_info = {
-            'available': False,
-            'usage': 0,
-            'memory_used': 0,
-            'memory_total': 0
-        }
-        
+    def get_system_idle_time(self):
+        """Get system idle time from /proc/uptime - REQUIRED by assignment"""
         try:
-            # Method 1: Try nvidia-smi (for NVIDIA GPUs)
-            import subprocess
-            result = subprocess.run(
-                ['nvidia-smi', '--query-gpu=utilization.gpu,memory.used,memory.total', 
-                 '--format=csv,noheader,nounits'],
-                capture_output=True,
-                text=True
-            )
-            
-            if result.returncode == 0:
-                data = result.stdout.strip().split(',')
-                gpu_info = {
-                    'available': True,
-                    'usage': float(data[0].strip()),
-                    'memory_used': float(data[1].strip()),
-                    'memory_total': float(data[2].strip())
-                }
-                
-        except Exception:
-            try:
-                # Method 2: Try GPUtil library (if installed)
-                import GPUtil
-                gpus = GPUtil.getGPUs()
-                if gpus:
-                    gpu = gpus[0]
-                    gpu_info = {
-                        'available': True,
-                        'usage': gpu.load * 100,
-                        'memory_used': gpu.memoryUsed,
-                        'memory_total': gpu.memoryTotal
-                    }
-            except:
-                pass
-        
-        return gpu_info
+            with open('/proc/uptime', 'r') as f:
+                uptime_seconds, idle_seconds = map(float, f.read().split())
+            return idle_seconds
+        except:
+            print("Warning: Could not read /proc/uptime")
+            return 0
     
-    def get_detailed_cpu_info(self):
-        """Get detailed CPU breakdown"""
-        cpu_times = psutil.cpu_times_percent(interval=None)
+    def get_memory_metrics(self):
+        """Get memory metrics exactly"""
+        memory = psutil.virtual_memory()
         return {
-            'user': cpu_times.user,
-            'system': cpu_times.system,
-            'idle': cpu_times.idle,
-            'iowait': getattr(cpu_times, 'iowait', 0)
+            'total_gb': round(memory.total / (1024**3), 2),
+            'used_gb': round(memory.used / (1024**3), 2),
+            'available_gb': round(memory.available / (1024**3), 2),  # NOT free!
+            'percent': memory.percent
         }
     
-    def get_top_processes(self):
-        """Get top 3 processes by CPU and Memory"""
-        processes = []
-        
-        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent']):
-            try:
-                # Update CPU percent for each process
-                proc.cpu_percent()
-            except:
-                pass
-        
-        time.sleep(0.1)  # Small delay for CPU measurement
-        
-        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent']):
-            try:
-                info = proc.info
-                # Only include if we have valid data
-                if info['cpu_percent'] is not None and info['memory_percent'] is not None:
-                    processes.append(info)
-            except:
-                pass
-        
-        # Sort by CPU and get top 3
-        processes.sort(key=lambda x: x.get('cpu_percent', 0), reverse=True)
-        top_cpu = [(p.get('name', 'N/A'), p.get('cpu_percent', 0)) for p in processes[:3]]
-        
-        # Sort by Memory and get top 3
-        processes.sort(key=lambda x: x.get('memory_percent', 0), reverse=True)
-        top_memory = [(p.get('name', 'N/A'), p.get('memory_percent', 0)) for p in processes[:3]]
-        
-        return top_cpu, top_memory
-    
-    def collect_metrics(self):
-        """Collect ALL system metrics"""
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
-        # 1. CPU Metrics
-        cpu_percent = psutil.cpu_percent(interval=None)
-        cpu_details = self.get_detailed_cpu_info()
-        load_avg = psutil.getloadavg()
-        
-        # 2. Memory Metrics
-        memory = psutil.virtual_memory()
-        
-        # 3. Disk Metrics
-        disk = psutil.disk_usage('/')
-        
-        # 4. Uptime
-        uptime_seconds = time.time() - psutil.boot_time()
-        
-        # 5. Process Metrics
-        process_count = len(psutil.pids())
+    def get_process_counts(self):
+        """Get process counts: total, running, sleeping"""
         running = 0
         sleeping = 0
         
-        for proc in psutil.process_iter(['status']):
+        for proc in psutil.process_iter(['pid', 'status']):
             try:
                 status = proc.info['status']
                 if status == psutil.STATUS_RUNNING:
@@ -158,46 +72,113 @@ class SystemPerformanceTracker:
                 elif status == psutil.STATUS_SLEEPING:
                     sleeping += 1
             except:
+                continue
+        
+        total = running + sleeping  
+        
+        return total, running, sleeping
+    
+    def get_top_processes(self):
+        """Get top 3 processes by CPU and Memory
+        processes = []
+        
+        # First pass: initialize CPU measurement
+        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent']):
+            try:
+                proc.cpu_percent()
+            except:
                 pass
         
-        # 6. Top Processes
-        top_cpu, top_memory = self.get_top_processes()
+        time.sleep(0.5)  # Allow time for measurement
         
-        # 7. GPU Metrics (if available)
-        gpu_info = self.get_gpu_info()
+        # collect data
+        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent']):
+            try:
+                info = proc.info
+                if (info.get('cpu_percent') is not None and 
+                    info.get('memory_percent') is not None):
+                    processes.append(info)
+            except:
+                pass
         
-        # Prepare data row
+        # Top 3 by CPU
+        top_cpu = []
+        cpu_sorted = sorted(processes, key=lambda x: x.get('cpu_percent', 0), reverse=True)[:3]
+        for proc in cpu_sorted:
+            top_cpu.append(f"{proc.get('name', 'unknown')}:{proc.get('cpu_percent', 0):.1f}%")
+        
+        # Top 3 by Memory
+        top_mem = []
+        mem_sorted = sorted(processes, key=lambda x: x.get('memory_percent', 0), reverse=True)[:3]
+        for proc in mem_sorted:
+            top_mem.append(f"{proc.get('name', 'unknown')}:{proc.get('memory_percent', 0):.1f}%")
+        
+        # Ensure we have 3 entries
+        while len(top_cpu) < 3:
+            top_cpu.append("None:0%")
+        while len(top_mem) < 3:
+            top_mem.append("None:0%")
+        
+        return top_cpu, top_mem
+    
+    def collect_metrics(self):
+        """Collect ALL metrics EXACTLY as required by assignment"""
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # 1. CPU METRICS (Requirement i)
+        cpu_percent = psutil.cpu_percent(interval=1)  # 1-second average
+        load_avg = psutil.getloadavg()  # (1min, 5min, 15min)
+        
+        # Get running process count for CPU metrics
+        _, running_count, _ = self.get_process_counts()
+        
+        # 2. MEMORY METRICS (Requirement ii)
+        mem = self.get_memory_metrics()
+        
+        # 3. DISK METRICS (Requirement iii)
+        disk = psutil.disk_usage('/')  # Root partition only
+        
+        # 4. SYSTEM UPTIME (Requirement iv) - WITH IDLE TIME!
+        uptime_seconds = time.time() - psutil.boot_time()
+        idle_seconds = self.get_system_idle_time()  # THIS WAS MISSING!
+        
+        # 5. ACTIVE PROCESSES (Requirement v)
+        total_procs, running_procs, sleeping_procs = self.get_process_counts()
+        top_cpu, top_mem = self.get_top_processes()
+        
+        # Prepare data row - EXACTLY matching requirements
         row = [
-            timestamp,                                      # 1. Timestamp
-            cpu_percent,                                    # 2. CPU %
-            cpu_details['user'],                            # 3. CPU user %
-            cpu_details['system'],                          # 4. CPU system %
-            cpu_details['idle'],                            # 5. CPU idle %
-            load_avg[0],                                    # 6. Load 1min
-            load_avg[1],                                    # 7. Load 5min
-            load_avg[2],                                    # 8. Load 15min
-            round(memory.total / (1024**3), 2),             # 9. Memory total GB
-            round(memory.used / (1024**3), 2),              # 10. Memory used GB
-            round(memory.available / (1024**3), 2),         # 11. Memory free GB
-            memory.percent,                                 # 12. Memory %
-            round(disk.total / (1024**3), 2),               # 13. Disk total GB
-            round(disk.used / (1024**3), 2),                # 14. Disk used GB
-            round(disk.free / (1024**3), 2),                # 15. Disk free GB
-            disk.percent,                                   # 16. Disk %
-            round(uptime_seconds / 3600, 2),                # 17. Uptime hours
-            process_count,                                  # 18. Process count
-            running,                                        # 19. Running processes
-            sleeping,                                       # 20. Sleeping processes
-            f"{top_cpu[0][0]}({top_cpu[0][1]:.1f}%)",      # 21. Top CPU 1
-            f"{top_cpu[1][0]}({top_cpu[1][1]:.1f}%)",      # 22. Top CPU 2
-            f"{top_cpu[2][0]}({top_cpu[2][1]:.1f}%)",      # 23. Top CPU 3
-            f"{top_memory[0][0]}({top_memory[0][1]:.1f}%)", # 24. Top Memory 1
-            f"{top_memory[1][0]}({top_memory[1][1]:.1f}%)", # 25. Top Memory 2
-            f"{top_memory[2][0]}({top_memory[2][1]:.1f}%)", # 26. Top Memory 3
-            gpu_info['available'],                          # 27. GPU available?
-            gpu_info['usage'],                              # 28. GPU usage %
-            gpu_info['memory_used'],                        # 29. GPU memory used MB
-            gpu_info['memory_total']                        # 30. GPU memory total MB
+            # Timestamp
+            timestamp,
+            
+            # CPU Metrics (Requirement i)
+            round(cpu_percent, 2),        # CPU usage percentage
+            round(load_avg[0], 2),        # Load average 1 min
+            round(load_avg[1], 2),        # Load average 5 min
+            round(load_avg[2], 2),        # Load average 15 min
+            running_count,                # Number of running processes
+            
+            # Memory Metrics (Requirement ii)
+            mem['total_gb'],              # Total memory GB
+            mem['used_gb'],               # Used memory GB
+            mem['available_gb'],          # Available memory GB (NOT free!)
+            mem['percent'],               # Memory usage percentage
+            
+            # Disk Metrics (Requirement iii)
+            round(disk.total / (1024**3), 2),  # Total disk space GB
+            round(disk.used / (1024**3), 2),   # Used disk space GB
+            round(disk.free / (1024**3), 2),   # Free disk space GB
+            disk.percent,                      # Disk usage percentage
+            
+            # System Uptime (Requirement iv)
+            round(uptime_seconds / 3600, 2),   # Total uptime hours
+            round(idle_seconds, 2),            # System idle time seconds (MISSING IN YOUR CODE!)
+            
+            # Active Processes (Requirement v)
+            total_procs,                       # Total number of processes
+            f"{running_procs}/{sleeping_procs}",  # Running vs sleeping processes
+            top_cpu[0], top_cpu[1], top_cpu[2],   # Top 3 by CPU usage
+            top_mem[0], top_mem[1], top_mem[2]    # Top 3 by memory usage
         ]
         
         return row
@@ -209,40 +190,61 @@ class SystemPerformanceTracker:
         with open(self.log_file, 'a', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(row)
-        
-        # Display on screen (optional)
-        print(f"[{row[0]}] CPU: {row[1]}% | Mem: {row[11]}% | Disk: {row[16]}%")
-        if row[26]:  # If GPU available
-            print(f"  GPU: {row[27]}% | GPU Mem: {row[28]}/{row[29]} MB")
+            
+        print(f"[{row[0]}]")
+        print(f"CPU: {row[1]}% | Load: {row[2]}, {row[3]}, {row[4]} | Running: {row[5]} processes")
+        print(f"Memory: {row[6]}GB total, {row[7]}GB used, {row[8]}GB available ({row[9]}%)")
+        print(f"Disk: {row[10]}GB total, {row[11]}GB used, {row[12]}GB free ({row[13]}%)")
+        print(f"Uptime: {row[14]} hours | System Idle: {row[15]} seconds")
+        print(f"Processes: {row[16]} total, {row[17]} (running/sleeping)")
+        print(f"Top CPU: {row[18]}, {row[19]}, {row[20]}")
+        print(f"Top Memory: {row[21]}, {row[22]}, {row[23]}")
     
     def run_monitor(self, interval_seconds=10):
-        """Run monitoring loop"""
-        print("Starting System Performance Monitor")
-        print(f"Logging to: {self.log_file}")
+        
+        print("Collecting EXACTLY as required:")
+        print("1. CPU: % usage, load avg (min), running processes")
+        print("2. Memory: total/used/available GB, usage %")
+        print("3. Disk: total/used/free GB, % usage (root /)")
+        print("4. Uptime: total hours + SYSTEM IDLE TIME seconds")
+        print("5. Processes: total, running/sleeping, top 3 CPU/Memory")
+        print("="*60)
         print(f"Interval: {interval_seconds} seconds")
+        print(f"Log file: {self.log_file}")
         print("Press Ctrl+C to stop\n")
-
-        next_run= time.time ()
+        
+        cycle = 0
+        next_run = time.time()
+        
         try:
             while True:
+                cycle += 1
+                print(f"\n--- Cycle #{cycle} ---")
                 self.log_metrics()
-                next_run+=interval_seconds
-                sleep_time= next_run- time.time ()
-                if sleep_time>0:
-                   time.sleep(sleep_time)
+                
+                # Precise timing
+                next_run += interval_seconds
+                sleep_time = next_run - time.time()
+                if sleep_time > 0:
+                    time.sleep(sleep_time)
+                else:
+                    print(f"Warning: Cycle took longer than {interval_seconds}s")
+                    next_run = time.time()
+                    
         except KeyboardInterrupt:
-            print("\nSystem monitoring stopped.")
+            print(f"\n{'='*60}")
+            print("MONITORING STOPPED")
+            print(f"Total cycles: {cycle}")
+            print(f"Data saved to: {self.log_file}")
 
 # ========== MAIN EXECUTION ==========
 if __name__ == "__main__":
-    # Create tracker
     tracker = SystemPerformanceTracker()
     
-    # Get interval from user (default 10 seconds)
-    interval = input("Enter monitoring interval in seconds (default 10): ").strip()
-    
+    # Get interval
     try:
-        interval = int(interval) if interval else 10
+        user_input = input("Monitoring interval (seconds, default 10): ").strip()
+        interval = int(user_input) if user_input else 10
     except:
         interval = 10
     
