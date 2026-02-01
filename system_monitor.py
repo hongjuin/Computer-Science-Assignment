@@ -148,33 +148,32 @@ class SystemPerformanceTracker:
         
         # Prepare data row - EXACTLY matching requirements
         row = [
-            # Timestamp
             timestamp,
             
-            # CPU Metrics (Requirement i)
+            # CPU Metrics
             round(cpu_percent, 2),        # CPU usage percentage
             round(load_avg[0], 2),        # Load average 1 min
             round(load_avg[1], 2),        # Load average 5 min
             round(load_avg[2], 2),        # Load average 15 min
             running_count,                # Number of running processes
             
-            # Memory Metrics (Requirement ii)
+            # Memory Metrics
             mem['total_gb'],              # Total memory GB
             mem['used_gb'],               # Used memory GB
             mem['available_gb'],          # Available memory GB (NOT free!)
             mem['percent'],               # Memory usage percentage
             
-            # Disk Metrics (Requirement iii)
+            # Disk Metrics
             round(disk.total / (1024**3), 2),  # Total disk space GB
             round(disk.used / (1024**3), 2),   # Used disk space GB
             round(disk.free / (1024**3), 2),   # Free disk space GB
             disk.percent,                      # Disk usage percentage
             
-            # System Uptime (Requirement iv)
+            # System Uptime 
             round(uptime_seconds / 3600, 2),   # Total uptime hours
             round(idle_seconds, 2),            # System idle time seconds (MISSING IN YOUR CODE!)
             
-            # Active Processes (Requirement v)
+            # Active Processes
             total_procs,                       # Total number of processes
             f"{running_procs}/{sleeping_procs}",  # Running vs sleeping processes
             top_cpu[0], top_cpu[1], top_cpu[2],   # Top 3 by CPU usage
